@@ -6,7 +6,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-export default function PlayerNavigation({ players }) {
+// Define a type for the player object
+type Player = {
+    name: string;
+    player_image: string;
+    club: string;
+    position_id: number;
+};
+
+type PlayerNavigationProps = {
+    players: Player[];
+};
+
+export default function PlayerNavigation({ players }: PlayerNavigationProps) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -21,7 +33,7 @@ export default function PlayerNavigation({ players }) {
         }
     }, [searchParams, players]);
 
-    const navigate = (direction) => {
+    const navigate = (direction: number) => {
         let newIndex = currentIndex + direction;
         if (newIndex < 0) newIndex = players.length - 1;
         if (newIndex >= players.length) newIndex = 0;
