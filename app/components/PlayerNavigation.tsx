@@ -6,12 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-// Define a type for the player object
 type Player = {
     name: string;
     player_image: string;
     club: string;
-    position_id: number;
+    position: string;
 };
 
 type PlayerNavigationProps = {
@@ -46,18 +45,26 @@ export default function PlayerNavigation({ players }: PlayerNavigationProps) {
     const player = players[currentIndex];
 
     return (
-        <Card className="w-96">
+        <Card className="w-[800px] max-w-[95vw]">
             <CardHeader>
-                <CardTitle>{player.name}</CardTitle>
+                <CardTitle className="text-4xl font-bold text-center">{player.name}</CardTitle>
             </CardHeader>
             <CardContent>
-                <img src={player.player_image} alt={player.name} className="w-full h-64 object-cover mb-4"/>
-                <p>Club: {player.club}</p>
-                <p>Position ID: {player.position_id}</p>
+                <div className="w-full h-[600px] mb-8 overflow-hidden rounded-lg">
+                    <img
+                        src={player.player_image}
+                        alt={player.name}
+                        className="w-full h-full object-cover object-center"
+                    />
+                </div>
+                <div className="space-y-4">
+                    <p className="text-2xl"><span className="font-semibold">Club:</span> {player.club}</p>
+                    <p className="text-2xl"><span className="font-semibold">Position:</span> <span className="capitalize">{player.position}</span></p>
+                </div>
             </CardContent>
             <CardFooter className="flex justify-between">
-                <Button onClick={() => navigate(-1)}><ChevronLeft /></Button>
-                <Button onClick={() => navigate(1)}><ChevronRight /></Button>
+                <Button size="lg" onClick={() => navigate(-1)}><ChevronLeft className="w-6 h-6 mr-2" /> Previous</Button>
+                <Button size="lg" onClick={() => navigate(1)}>Next <ChevronRight className="w-6 h-6 ml-2" /></Button>
             </CardFooter>
         </Card>
     );
