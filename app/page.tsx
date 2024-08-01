@@ -1,7 +1,7 @@
 import PlayerNavigation from './components/PlayerNavigation';
 
 async function getPlayers() {
-    const res = await fetch(`${process.env.API_URL}/api/players`, { cache: 'no-store' });
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/players`, { cache: 'no-store' });
     if (!res.ok) {
         throw new Error('Failed to fetch players');
     }
