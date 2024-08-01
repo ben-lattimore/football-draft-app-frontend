@@ -11,13 +11,16 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+        if (typeof window !== 'undefined') {
+            return !!localStorage.getItem('token');
+        }
+        return false;
+    });
 
     useEffect(() => {
         const token = localStorage.getItem('token');
-        if (token) {
-            setIsAuthenticated(true);
-        }
+        setIsAuthenticated(!!token);
     }, []);
 
     const login = (token: string) => {
