@@ -1,13 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import PlayerNavigation from './components/PlayerNavigation';
 import AuctionInterface from './components/AuctionInterface';
 import { useAuth } from './contexts/AuthContext';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 type Player = {
+    _id: string;
     name: string;
     player_image: string;
     club: string;
@@ -16,45 +14,41 @@ type Player = {
 
 export default function Home() {
     const [players, setPlayers] = useState<Player[]>([]);
-    const { isAuthenticated, user } = useAuth();
+    const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
+    const { isAuthenticated, isLoading } = useAuth();
 
     useEffect(() => {
         async function fetchPlayers() {
+            console.log('Fetching players');
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/players`);
             if (!res.ok) {
+                console.error('Failed to fetch players');
                 throw new Error('Failed to fetch players');
             }
             const data = await res.json();
+            console.log('Fetched players:', data);
             setPlayers(data);
         }
-        if (isAuthenticated) {
+        if (isAuthenticated && !isLoading) {
             fetchPlayers();
         }
-    }, [isAuthenticated]);
+    }, [isAuthenticated, isLoading]);
+
+    const currentPlayer = players[currentPlayerIndex];
+
+    console.log('Rendering Home', { playersCount: players.length, currentPlayerIndex, currentPlayer });
+
+    if (isLoading) {
+        return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
+    }
 
     if (!isAuthenticated) {
-        return (
-            <div className="flex items-center justify-center min-h-screen bg-gray-100">
-                <Card className="w-[350px]">
-                    <CardHeader>
-                        <CardTitle>Welcome to Football Draft</CardTitle>
-                        <CardDescription>Please log in to access the auction.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Button onClick={() => window.location.href = '/login'} className="w-full">
-                            Log In
-                        </Button>
-                    </CardContent>
-                </Card>
-            </div>
-        );
+        return <div className="flex justify-center items-center min-h-screen">Please log in to access the auction.</div>;
     }
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-            <h1 className="text-2xl font-bold mb-4">Welcome, {user?.username}!</h1>
-            <PlayerNavigation players={players} />
-            <AuctionInterface />
+        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
+            {players.length > 0 && <AuctionInterface currentDisplayedPlayer={currentPlayer} />}
         </div>
     );
 }

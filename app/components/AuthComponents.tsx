@@ -26,8 +26,14 @@ export const Login: React.FC = () => {
             });
             const data = await response.json();
             if (response.ok) {
-                login(data.token);
-                router.push('/');
+                // Make sure the server is returning the user object along with the token
+                if (data.token && data.user) {
+                    login(data.token, data.user);
+                    router.push('/');
+                } else {
+                    setError('Invalid response from server');
+                    console.error('Invalid response data:', data);
+                }
             } else {
                 setError(data.message || 'Login failed');
             }
