@@ -8,7 +8,7 @@ import { useAuth } from '@/app/contexts/AuthContext';
 export function Navigation() {
     const pathname = usePathname();
     const router = useRouter();
-    const { isAuthenticated, logout } = useAuth();
+    const { isAuthenticated, user, logout } = useAuth();
 
     const handleLogout = () => {
         logout();
@@ -23,9 +23,12 @@ export function Navigation() {
             <div>
                 {isAuthenticated ? (
                     <>
-                        <Link href="/profile" passHref>
-                            <Button variant="ghost" className="mr-2">Profile</Button>
-                        </Link>
+                        <span className="mr-4">Welcome, {user?.username}!</span>
+                        {user?.isAdmin && (
+                            <Link href="/admin" passHref>
+                                <Button variant="ghost" className="mr-2">Admin</Button>
+                            </Link>
+                        )}
                         <Button variant="ghost" onClick={handleLogout}>Logout</Button>
                     </>
                 ) : (
