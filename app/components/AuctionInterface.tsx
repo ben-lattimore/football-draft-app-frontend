@@ -30,7 +30,16 @@ const AuctionInterface: React.FC = () => {
     const { isAuthenticated, user } = useAuth();
 
     useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            console.error('No token found');
+            return;
+        }
+
         const newSocket = io(`${process.env.NEXT_PUBLIC_API_URL}`, {
+            auth: {
+                token: token
+            },
             transports: ['websocket'],
             upgrade: false
         });
@@ -60,11 +69,15 @@ const AuctionInterface: React.FC = () => {
 
         newSocket.on('auctionStopped', ({ winner, amount }) => {
             setIsAuctionActive(false);
-            // Display winner information
+            setError(`Auction ended. Winner: ${winner}, Amount: ${amount}`);
         });
 
         newSocket.on('newBid', (bid: Bid) => {
             setCurrentBid(bid);
+        });
+
+        newSocket.on('error', ({ message }) => {
+            setError(message);
         });
 
         return () => {
@@ -74,24 +87,36 @@ const AuctionInterface: React.FC = () => {
 
     const handleBid = () => {
         if (socket && isAuthenticated && user) {
+            const bidValue = parseFloat(bidAmount);
+            if (isNaN(bidValue) || bidValue <= 0) {
+                setError('Please enter a valid bid amount');
+                return;
+            }
+            if (currentBid && bidValue <= currentBid.amount) {
+                setError('Your bid must be higher than the current bid');
+                return;
+            }
             const bid = {
-                amount: parseFloat(bidAmount),
+                amount: bidValue,
                 bidder: user.username
             };
             socket.emit('placeBid', bid);
             setBidAmount('');
+            setError(null);
         }
     };
 
     const handleStartAuction = () => {
         if (socket && isAuthenticated && user && user.isAdmin) {
             socket.emit('startAuction', currentPlayer);
+            setError(null);
         }
     };
 
     const handleStopAuction = () => {
         if (socket && isAuthenticated && user && user.isAdmin) {
             socket.emit('stopAuction');
+            setError(null);
         }
     };
 
@@ -104,39 +129,51 @@ const AuctionInterface: React.FC = () => {
         );
     }
 
-    if (!currentPlayer) {
-        return <div>Waiting for auction to start...</div>;
-    }
-
     return (
-        <Card className="w-[400px]">
+        <Card className="w-[400px] mt-4">
             <CardHeader>
-                <CardTitle>{currentPlayer.name}</CardTitle>
+                <CardTitle>{isAuctionActive ? "Active Auction" : "Auction Not Active"}</CardTitle>
             </CardHeader>
             <CardContent>
-                <img src={currentPlayer.player_image} alt={currentPlayer.name} className="w-full h-48 object-cover" />
-                <p>Club: {currentPlayer.club}</p>
-                <p>Position: {currentPlayer.position}</p>
-                <p>Current Bid: {currentBid ? `${currentBid.amount} by ${currentBid.bidder}` : 'No bids yet'}</p>
+                {currentPlayer ? (
+                    <>
+                        <img src={currentPlayer.player_image} alt={currentPlayer.name} className="w-full h-48 object-cover mb-4" />
+                        <p className="font-bold text-lg">{currentPlayer.name}</p>
+                        <p>Club: {currentPlayer.club}</p>
+                        <p>Position: {currentPlayer.position}</p>
+                        <p className="mt-2 font-semibold">Current Bid: {currentBid ? `${currentBid.amount} by ${currentBid.bidder}` : 'No bids yet'}</p>
+                    </>
+                ) : (
+                    <p>No player selected for auction</p>
+                )}
             </CardContent>
             <CardFooter className="flex flex-col space-y-2">
                 {isAuctionActive ? (
-                    <div className="flex space-x-2">
-                        <Input
-                            type="number"
-                            value={bidAmount}
-                            onChange={(e) => setBidAmount(e.target.value)}
-                            placeholder="Enter bid amount"
-                        />
-                        <Button onClick={handleBid}>Place Bid</Button>
-                    </div>
+                    isAuthenticated ? (
+                        <div className="flex space-x-2 w-full">
+                            <Input
+                                type="number"
+                                value={bidAmount}
+                                onChange={(e) => setBidAmount(e.target.value)}
+                                placeholder="Enter bid amount"
+                                className="flex-grow"
+                            />
+                            <Button onClick={handleBid}>Place Bid</Button>
+                        </div>
+                    ) : (
+                        <p>Please log in to place a bid</p>
+                    )
                 ) : (
-                    <p>Auction is not active</p>
+                    <p>Waiting for auction to start...</p>
                 )}
                 {user && user.isAdmin && (
-                    <div className="flex space-x-2">
-                        <Button onClick={handleStartAuction}>Start Auction</Button>
-                        <Button onClick={handleStopAuction}>Stop Auction</Button>
+                    <div className="flex space-x-2 w-full">
+                        <Button onClick={handleStartAuction} disabled={isAuctionActive} className="flex-grow">
+                            Start Auction
+                        </Button>
+                        <Button onClick={handleStopAuction} disabled={!isAuctionActive} className="flex-grow">
+                            Stop Auction
+                        </Button>
                     </div>
                 )}
             </CardFooter>
