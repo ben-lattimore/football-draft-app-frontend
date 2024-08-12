@@ -14,7 +14,6 @@ type Player = {
 
 export default function Home() {
     const [players, setPlayers] = useState<Player[]>([]);
-    const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
     const { isAuthenticated, isLoading } = useAuth();
 
     useEffect(() => {
@@ -34,9 +33,7 @@ export default function Home() {
         }
     }, [isAuthenticated, isLoading]);
 
-    const currentPlayer = players[currentPlayerIndex];
-
-    console.log('Rendering Home', { playersCount: players.length, currentPlayerIndex, currentPlayer });
+    console.log('Rendering Home', { playersCount: players.length });
 
     if (isLoading) {
         return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
@@ -48,7 +45,7 @@ export default function Home() {
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
-            {players.length > 0 && <AuctionInterface currentDisplayedPlayer={currentPlayer} />}
+            {players.length > 0 && <AuctionInterface />}
         </div>
     );
 }

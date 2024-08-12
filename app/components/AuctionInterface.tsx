@@ -1,5 +1,3 @@
-'use client';
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from '@/app/contexts/AuthContext';
@@ -21,7 +19,7 @@ type Bid = {
     bidder: string;
 };
 
-const AuctionInterface: React.FC<{ currentDisplayedPlayer: Player }> = ({ currentDisplayedPlayer }) => {
+const AuctionInterface: React.FC = () => {
     const socketRef = useRef<Socket | null>(null);
     const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
     const [currentBid, setCurrentBid] = useState<Bid | null>(null);
@@ -29,8 +27,6 @@ const AuctionInterface: React.FC<{ currentDisplayedPlayer: Player }> = ({ curren
     const [bidAmount, setBidAmount] = useState<string>('');
     const [error, setError] = useState<string | null>(null);
     const { isAuthenticated, user, isLoading } = useAuth();
-
-    console.log('Rendering AuctionInterface', { isAuthenticated, user, currentDisplayedPlayer, isLoading });
 
     const connectSocket = useCallback(() => {
         if (socketRef.current) {
@@ -137,18 +133,23 @@ const AuctionInterface: React.FC<{ currentDisplayedPlayer: Player }> = ({ curren
             console.log('Emitting placeBid event', bid);
             socketRef.current.emit('placeBid', bid);
             setBidAmount('');
-            setError(null);
+        } else {
+            console.error('Cannot place bid: socket not connected or user not authenticated');
+            setError('Unable to place bid. Please try again.');
         }
     }, [bidAmount, currentBid, isAuthenticated, user]);
 
     const handleStartAuction = useCallback(() => {
-        console.log('Attempting to start auction', { user, currentDisplayedPlayer });
+        console.log('Attempting to start auction', { user });
         if (socketRef.current && isAuthenticated && user && user.isAdmin) {
-            console.log('Emitting startAuction event', currentDisplayedPlayer);
-            socketRef.current.emit('startAuction', currentDisplayedPlayer);
+            console.log('Emitting startAuction event');
+            socketRef.current.emit('startAuction');
             setError(null);
+        } else {
+            console.error('Cannot start auction: socket not connected, user not authenticated, or not admin');
+            setError('Unable to start auction. Please try again.');
         }
-    }, [currentDisplayedPlayer, isAuthenticated, user]);
+    }, [isAuthenticated, user]);
 
     const handleStopAuction = useCallback(() => {
         console.log('Attempting to stop auction', { user });
@@ -156,6 +157,9 @@ const AuctionInterface: React.FC<{ currentDisplayedPlayer: Player }> = ({ curren
             console.log('Emitting stopAuction event');
             socketRef.current.emit('stopAuction');
             setError(null);
+        } else {
+            console.error('Cannot stop auction: socket not connected, user not authenticated, or not admin');
+            setError('Unable to stop auction. Please try again.');
         }
     }, [isAuthenticated, user]);
 
