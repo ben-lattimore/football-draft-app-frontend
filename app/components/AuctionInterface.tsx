@@ -6,11 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
+
 type Player = {
     _id: string;
     name: string;
     player_image: string;
-    club: string;
     position: string;
 };
 
@@ -177,6 +177,9 @@ const AuctionInterface: React.FC = () => {
         return <div>Loading...</div>;
     }
 
+    const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+
+
     return (
         <Card className="w-full max-w-4xl mx-auto h-[calc(70vh-4rem)] overflow-y-auto">
             <CardHeader>
@@ -196,10 +199,10 @@ const AuctionInterface: React.FC = () => {
                         </div>
                         <div className="w-full md:w-1/2 space-y-2">
                             <p className="text-2xl font-bold">{currentPlayer.name}</p>
-                            <p className="text-lg">Club: {currentPlayer.club}</p>
-                            <p className="text-lg">Position: {currentPlayer.position}</p>
+                            <p className="text-lg">Position: {capitalize(currentPlayer.position)}</p>
                             <p className="text-xl font-semibold mt-4">
-                                Current Bid: {currentBid ? `£${currentBid.amount} by ${currentBid.bidder}` : 'No bids yet'}
+                                Current
+                                Bid: {currentBid ? `£${currentBid.amount} by ${currentBid.bidder}` : 'No bids yet'}
                             </p>
                         </div>
                     </div>

@@ -8,8 +8,8 @@ type Player = {
     _id: string;
     name: string;
     position: string;
-    club: string;
     player_image: string;
+    country: string;
 };
 
 type WonPlayer = {
@@ -29,7 +29,7 @@ type GroupedPlayers = {
     [key: string]: WonPlayer[];
 };
 
-const positionOrder = ['goalkeeper', 'defender', 'midfielder', 'attacker'];
+const positionOrder = ['goalkeeper', 'defender', 'midfielder', 'forward'];
 
 export default function TeamsPage() {
     const [teams, setTeams] = useState<User[]>([]);
@@ -84,7 +84,7 @@ export default function TeamsPage() {
                     </Avatar>
                 </div>
                 <p><strong>Position:</strong> {wonPlayer.player.position}</p>
-                <p><strong>Club:</strong> {wonPlayer.player.club}</p>
+                <p><strong>Country:</strong> {wonPlayer.player.country}</p>
                 <p><strong>Bought for:</strong> £{wonPlayer.amount}</p>
                 <p><strong>Auction Date:</strong> {new Date(wonPlayer.auctionDate).toLocaleDateString()}</p>
             </CardContent>
