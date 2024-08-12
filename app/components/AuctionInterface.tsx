@@ -19,6 +19,12 @@ type Bid = {
     bidder: string;
 };
 
+type AuctionResult = {
+    winner: string | null;
+    amount: number | null;
+    player: string | null;
+};
+
 const AuctionInterface: React.FC = () => {
     const socketRef = useRef<Socket | null>(null);
     const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
@@ -26,6 +32,7 @@ const AuctionInterface: React.FC = () => {
     const [isAuctionActive, setIsAuctionActive] = useState<boolean>(false);
     const [bidAmount, setBidAmount] = useState<string>('');
     const [error, setError] = useState<string | null>(null);
+    const [lastAuctionResult, setLastAuctionResult] = useState<AuctionResult | null>(null);
     const { isAuthenticated, user, isLoading } = useAuth();
 
     const connectSocket = useCallback(() => {
@@ -78,10 +85,11 @@ const AuctionInterface: React.FC = () => {
             setIsAuctionActive(true);
         });
 
-        newSocket.on('auctionStopped', ({ winner, amount }) => {
-            console.log('Auction stopped', { winner, amount });
+        newSocket.on('auctionStopped', (result: AuctionResult) => {
+            console.log('Auction stopped', result);
             setIsAuctionActive(false);
-            setError(`Auction ended. Winner: ${winner}, Amount: ${amount}`);
+            setLastAuctionResult(result);
+            setError(null);
         });
 
         newSocket.on('newBid', (bid: Bid) => {
@@ -229,6 +237,17 @@ const AuctionInterface: React.FC = () => {
                             Stop Auction
                         </Button>
                     </div>
+                )}
+
+                {lastAuctionResult && (
+                    <Alert>
+                        <AlertTitle>Last Auction Result</AlertTitle>
+                        <AlertDescription>
+                            {lastAuctionResult.winner
+                                ? `${lastAuctionResult.winner} won ${lastAuctionResult.player} for £${lastAuctionResult.amount}`
+                                : 'No winner in the last auction.'}
+                        </AlertDescription>
+                    </Alert>
                 )}
             </CardContent>
             {error && (
