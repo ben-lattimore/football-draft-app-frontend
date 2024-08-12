@@ -21,6 +21,9 @@ export function Navigation() {
                 Football Draft
             </Link>
             <div>
+                <Link href="/teams" passHref>
+                    <Button variant="ghost">Teams</Button>
+                </Link>
                 {isAuthenticated ? (
                     <>
                         <span className="mr-4">Welcome, {user?.username}!</span>
