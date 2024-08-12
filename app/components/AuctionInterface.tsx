@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-
 type Player = {
     _id: string;
     name: string;
@@ -23,6 +22,7 @@ type AuctionResult = {
     winner: string | null;
     amount: number | null;
     player: string | null;
+    newBudget?: number | null;
 };
 
 const AuctionInterface: React.FC = () => {
@@ -33,9 +33,43 @@ const AuctionInterface: React.FC = () => {
     const [bidAmount, setBidAmount] = useState<string>('');
     const [error, setError] = useState<string | null>(null);
     const [lastAuctionResult, setLastAuctionResult] = useState<AuctionResult | null>(null);
+    const [userBudget, setUserBudget] = useState<number | null>(null);
     const { isAuthenticated, user, isLoading } = useAuth();
 
+    const fetchUserBudget = useCallback(async () => {
+        console.log('Fetching user budget');
+        if (isAuthenticated && user) {
+            try {
+                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/user/budget`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                console.log('Budget fetch response status:', response.status);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch budget');
+                }
+                const data = await response.json();
+                console.log('Fetched budget data:', data);
+                setUserBudget(data.budget);
+                console.log('Updated userBudget state:', data.budget);
+            } catch (error) {
+                console.error('Error fetching user budget:', error);
+                setError('Failed to fetch user budget');
+            }
+        } else {
+            console.log('Not fetching budget: user not authenticated or user object missing');
+        }
+    }, [isAuthenticated, user]);
+
+    useEffect(() => {
+        if (isAuthenticated && user) {
+            fetchUserBudget();
+        }
+    }, [isAuthenticated, user, fetchUserBudget]);
+
     const connectSocket = useCallback(() => {
+        console.log('Attempting to connect socket');
         if (socketRef.current) {
             console.log('Socket already exists, reusing');
             return;
@@ -90,6 +124,13 @@ const AuctionInterface: React.FC = () => {
             setIsAuctionActive(false);
             setLastAuctionResult(result);
             setError(null);
+            if (result.newBudget !== undefined && user && result.winner === user.username) {
+                console.log('Updating budget from auction result:', result.newBudget);
+                setUserBudget(result.newBudget);
+            } else {
+                console.log('Fetching updated budget after auction');
+                fetchUserBudget();
+            }
         });
 
         newSocket.on('newBid', (bid: Bid) => {
@@ -103,12 +144,14 @@ const AuctionInterface: React.FC = () => {
         });
 
         socketRef.current = newSocket;
-    }, []);
+    }, [fetchUserBudget, user]);
 
     useEffect(() => {
+        console.log('useEffect running', { isLoading, isAuthenticated });
         if (!isLoading && isAuthenticated) {
-            console.log('useEffect running, connecting socket');
+            console.log('Connecting socket and fetching budget');
             connectSocket();
+            fetchUserBudget();
         }
 
         return () => {
@@ -118,10 +161,10 @@ const AuctionInterface: React.FC = () => {
                 socketRef.current = null;
             }
         };
-    }, [connectSocket, isLoading, isAuthenticated]);
+    }, [connectSocket, isLoading, isAuthenticated, fetchUserBudget]);
 
     const handleBid = useCallback(() => {
-        console.log('Attempting to place bid', { bidAmount, user });
+        console.log('Attempting to place bid', { bidAmount, user, userBudget });
         if (socketRef.current && isAuthenticated && user) {
             const bidValue = parseFloat(bidAmount);
             if (isNaN(bidValue) || bidValue <= 0) {
@@ -132,6 +175,11 @@ const AuctionInterface: React.FC = () => {
             if (currentBid && bidValue <= currentBid.amount) {
                 console.error('Bid too low');
                 setError('Your bid must be higher than the current bid');
+                return;
+            }
+            if (userBudget !== null && bidValue > userBudget) {
+                console.error('Bid exceeds budget');
+                setError('Your bid exceeds your available budget');
                 return;
             }
             const bid = {
@@ -145,7 +193,7 @@ const AuctionInterface: React.FC = () => {
             console.error('Cannot place bid: socket not connected or user not authenticated');
             setError('Unable to place bid. Please try again.');
         }
-    }, [bidAmount, currentBid, isAuthenticated, user]);
+    }, [bidAmount, currentBid, isAuthenticated, user, userBudget]);
 
     const handleStartAuction = useCallback(() => {
         console.log('Attempting to start auction', { user });
@@ -171,7 +219,7 @@ const AuctionInterface: React.FC = () => {
         }
     }, [isAuthenticated, user]);
 
-    console.log('Current state before render', { currentPlayer, currentBid, isAuctionActive, error, isAuthenticated, user });
+    console.log('Current state before render', { currentPlayer, currentBid, isAuctionActive, error, isAuthenticated, user, userBudget });
 
     if (isLoading) {
         return <div>Loading...</div>;
@@ -179,13 +227,15 @@ const AuctionInterface: React.FC = () => {
 
     const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
 
-
     return (
         <Card className="w-full max-w-4xl mx-auto h-[calc(70vh-4rem)] overflow-y-auto">
             <CardHeader>
                 <CardTitle className="text-2xl">
                     {isAuctionActive ? "Active Auction" : "Auction Not Active"}
                 </CardTitle>
+                {isAuthenticated && (
+                    <p className="text-lg">Your remaining budget: £{userBudget !== null ? userBudget : 'Loading...'}</p>
+                )}
             </CardHeader>
             <CardContent className="space-y-4">
                 {currentPlayer ? (
@@ -201,8 +251,7 @@ const AuctionInterface: React.FC = () => {
                             <p className="text-2xl font-bold">{currentPlayer.name}</p>
                             <p className="text-lg">Position: {capitalize(currentPlayer.position)}</p>
                             <p className="text-xl font-semibold mt-4">
-                                Current
-                                Bid: {currentBid ? `£${currentBid.amount} by ${currentBid.bidder}` : 'No bids yet'}
+                                Current Bid: {currentBid ? `£${currentBid.amount} by ${currentBid.bidder}` : 'No bids yet'}
                             </p>
                         </div>
                     </div>
