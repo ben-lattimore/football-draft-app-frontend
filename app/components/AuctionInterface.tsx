@@ -234,7 +234,7 @@ const AuctionInterface: React.FC = () => {
                     {isAuctionActive ? "Active Auction" : "Auction Not Active"}
                 </CardTitle>
                 {isAuthenticated && (
-                    <p className="text-lg">Your remaining budget: £{userBudget !== null ? userBudget : 'Loading...'}</p>
+                    <p className="text-lg">Your remaining budget: £{userBudget !== null ? userBudget : 'Loading...'} million</p>
                 )}
             </CardHeader>
             <CardContent className="space-y-4">
@@ -251,7 +251,7 @@ const AuctionInterface: React.FC = () => {
                             <p className="text-2xl font-bold">{currentPlayer.name}</p>
                             <p className="text-lg">Position: {capitalize(currentPlayer.position)}</p>
                             <p className="text-xl font-semibold mt-4">
-                                Current Bid: {currentBid ? `£${currentBid.amount} by ${currentBid.bidder}` : 'No bids yet'}
+                                Current Bid: {currentBid ? `£${currentBid.amount} million by ${currentBid.bidder}` : 'No bids yet'}
                             </p>
                         </div>
                     </div>
@@ -265,7 +265,7 @@ const AuctionInterface: React.FC = () => {
                             type="number"
                             value={bidAmount}
                             onChange={(e) => setBidAmount(e.target.value)}
-                            placeholder="Enter bid amount"
+                            placeholder="Enter bid amount [millions]"
                             className="flex-grow"
                         />
                         <Button onClick={handleBid} className="w-32">Place Bid</Button>

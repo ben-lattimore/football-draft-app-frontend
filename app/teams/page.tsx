@@ -85,7 +85,7 @@ export default function TeamsPage() {
                 </div>
                 <p><strong>Position:</strong> {wonPlayer.player.position}</p>
                 <p><strong>Country:</strong> {wonPlayer.player.country}</p>
-                <p><strong>Bought for:</strong> £{wonPlayer.amount}</p>
+                <p><strong>Bought for:</strong> £{wonPlayer.amount} million</p>
                 <p><strong>Auction Date:</strong> {new Date(wonPlayer.auctionDate).toLocaleDateString()}</p>
             </CardContent>
         </Card>
