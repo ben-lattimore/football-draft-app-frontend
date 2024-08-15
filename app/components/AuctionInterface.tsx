@@ -236,6 +236,26 @@ const AuctionInterface: React.FC = () => {
         }
     }, [bidAmount, currentBid, isAuthenticated, user, userBudget]);
 
+    const handleIncrementBid = useCallback(() => {
+        if (socketRef.current && isAuthenticated && user) {
+            const newBidAmount = currentBid ? currentBid.amount + 0.5 : 0.5;
+            if (userBudget !== null && newBidAmount > userBudget) {
+                setAlertInfo({ message: 'Incremented bid exceeds your available budget', type: 'error' });
+                return;
+            }
+            const bid = {
+                amount: newBidAmount,
+                bidder: user.username
+            };
+            console.log('Emitting placeBid event for increment', bid);
+            socketRef.current.emit('placeBid', bid);
+            setAlertInfo({ message: '', type: null }); // Clear any existing alerts
+        } else {
+            console.error('Cannot place incremented bid: socket not connected or user not authenticated');
+            setAlertInfo({ message: 'Unable to place incremented bid. Please try again.', type: 'error' });
+        }
+    }, [currentBid, isAuthenticated, user, userBudget]);
+
     const handleStartAuction = useCallback(() => {
         console.log('Attempting to start auction', { user });
         if (socketRef.current && isAuthenticated && user && user.isAdmin) {
@@ -318,20 +338,29 @@ const AuctionInterface: React.FC = () => {
                 )}
 
                 {isAuctionActive && isAuthenticated && (
-                    <div className="flex space-x-2 w-full mt-4">
-                        <Input
-                            type="text"
-                            value={bidAmount}
-                            onChange={(e) => {
-                                const value = e.target.value;
-                                if (value === '' || /^\d*\.?\d{0,1}$/.test(value)) {
-                                    setBidAmount(value);
-                                }
-                            }}
-                            placeholder="Enter bid amount [millions]"
-                            className="flex-grow"
-                        />
-                        <Button onClick={handleBid} className="w-32">Place Bid</Button>
+                    <div className="flex flex-col space-y-2 w-full mt-4">
+                        <div className="flex space-x-2">
+                            <Input
+                                type="text"
+                                value={bidAmount}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    if (value === '' || /^\d*\.?\d{0,1}$/.test(value)) {
+                                        setBidAmount(value);
+                                    }
+                                }}
+                                placeholder="Enter bid amount [millions]"
+                                className="flex-grow"
+                            />
+                            <Button onClick={handleBid} className="w-32">Place Bid</Button>
+                        </div>
+                        <Button
+                            onClick={handleIncrementBid}
+                            className="w-full"
+                            disabled={!isAuctionActive}
+                        >
+                            Bid £{((currentBid?.amount || 0) + 0.5).toFixed(1)}m
+                        </Button>
                     </div>
                 )}
 
