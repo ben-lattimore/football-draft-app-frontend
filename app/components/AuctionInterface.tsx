@@ -41,7 +41,6 @@ const AuctionInterface: React.FC = () => {
     const [alertInfo, setAlertInfo] = useState<{ message: string; type: 'error' | 'warning' | null }>({ message: '', type: null });
 
 
-
     const fetchUserBudget = useCallback(async () => {
         console.log('Fetching user budget');
         if (isAuthenticated && user) {
@@ -342,7 +341,7 @@ const AuctionInterface: React.FC = () => {
             </CardContent>
             {alertInfo.type && (
                 <CardFooter>
-                    <Alert variant={alertInfo.type === 'error' ? 'destructive' : 'warning'}>
+                    <Alert variant={alertInfo.type === 'error' ? 'destructive' : 'default'}>
                         <AlertTitle>{alertInfo.type === 'error' ? 'Error' : 'Warning'}</AlertTitle>
                         <AlertDescription>{alertInfo.message}</AlertDescription>
                     </Alert>
