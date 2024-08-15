@@ -40,14 +40,15 @@ const AuctionInterface: React.FC = () => {
     const { isAuthenticated, user, isLoading } = useAuth();
     const [alertInfo, setAlertInfo] = useState<{ message: string; type: 'error' | 'warning' | null }>({ message: '', type: null });
 
-
     const fetchUserBudget = useCallback(async () => {
         console.log('Fetching user budget');
         if (isAuthenticated && user) {
             try {
+                const token = localStorage.getItem('token');
+                console.log('Token used for budget fetch:', token);
                 const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/user/budget`, {
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        'Authorization': `Bearer ${token}`
                     }
                 });
                 console.log('Budget fetch response status:', response.status);
@@ -68,10 +69,23 @@ const AuctionInterface: React.FC = () => {
     }, [isAuthenticated, user]);
 
     useEffect(() => {
-        if (isAuthenticated && user) {
+        const token = localStorage.getItem('token');
+        if (isAuthenticated && user && token) {
             fetchUserBudget();
+        } else {
+            console.log('Not fetching budget: missing authentication or token');
         }
     }, [isAuthenticated, user, fetchUserBudget]);
+
+    useEffect(() => {
+        if (alertInfo.message) {
+            const timer = setTimeout(() => {
+                setAlertInfo({ message: '', type: null });
+            }, 5000); // Clear after 5 seconds
+
+            return () => clearTimeout(timer);
+        }
+    }, [alertInfo]);
 
     const connectSocket = useCallback(() => {
         console.log('Attempting to connect socket');
@@ -183,23 +197,29 @@ const AuctionInterface: React.FC = () => {
         };
     }, [connectSocket, isLoading, isAuthenticated, fetchUserBudget, user]);
 
+    const validateBidIncrement = (newBid: number, currentBid: number | null): boolean => {
+        if (currentBid === null) return Number.isInteger(newBid) || (newBid * 10) % 5 === 0;
+        const increment = newBid - currentBid;
+        return increment === 0.5 || increment === 1 || (increment > 1 && (Number.isInteger(increment) || (increment * 10) % 5 === 0));
+    };
+
     const handleBid = useCallback(() => {
         console.log('Attempting to place bid', { bidAmount, user, userBudget });
         if (socketRef.current && isAuthenticated && user) {
             const bidValue = parseFloat(bidAmount);
             if (isNaN(bidValue) || bidValue <= 0) {
                 console.error('Invalid bid amount');
-                setError('Please enter a valid bid amount');
+                setAlertInfo({ message: 'Please enter a valid bid amount', type: 'error' });
                 return;
             }
-            if (currentBid && bidValue <= currentBid.amount) {
-                console.error('Bid too low');
-                setError('Your bid must be higher than the current bid');
+            if (currentBid && !validateBidIncrement(bidValue, currentBid.amount)) {
+                console.error('Invalid bid increment');
+                setAlertInfo({ message: 'Your bid must increase by £0.5 million or £1 million, or be a whole number or half number above that', type: 'error' });
                 return;
             }
             if (userBudget !== null && bidValue > userBudget) {
                 console.error('Bid exceeds budget');
-                setError('Your bid exceeds your available budget');
+                setAlertInfo({ message: 'Your bid exceeds your available budget', type: 'error' });
                 return;
             }
             const bid = {
@@ -209,9 +229,10 @@ const AuctionInterface: React.FC = () => {
             console.log('Emitting placeBid event', bid);
             socketRef.current.emit('placeBid', bid);
             setBidAmount('');
+            setAlertInfo({ message: '', type: null }); // Clear any existing alerts
         } else {
             console.error('Cannot place bid: socket not connected or user not authenticated');
-            setError('Unable to place bid. Please try again.');
+            setAlertInfo({ message: 'Unable to place bid. Please try again.', type: 'error' });
         }
     }, [bidAmount, currentBid, isAuthenticated, user, userBudget]);
 
@@ -220,10 +241,10 @@ const AuctionInterface: React.FC = () => {
         if (socketRef.current && isAuthenticated && user && user.isAdmin) {
             console.log('Emitting startAuction event');
             socketRef.current.emit('startAuction');
-            setError(null);
+            setAlertInfo({ message: '', type: null });
         } else {
             console.error('Cannot start auction: socket not connected, user not authenticated, or not admin');
-            setError('Unable to start auction. Please try again.');
+            setAlertInfo({ message: 'Unable to start auction. Please try again.', type: 'error' });
         }
     }, [isAuthenticated, user]);
 
@@ -232,10 +253,10 @@ const AuctionInterface: React.FC = () => {
         if (socketRef.current && isAuthenticated && user && user.isAdmin) {
             console.log('Emitting stopAuction event');
             socketRef.current.emit('stopAuction');
-            setError(null);
+            setAlertInfo({ message: '', type: null });
         } else {
             console.error('Cannot stop auction: socket not connected, user not authenticated, or not admin');
-            setError('Unable to stop auction. Please try again.');
+            setAlertInfo({ message: 'Unable to stop auction. Please try again.', type: 'error' });
         }
     }, [isAuthenticated, user]);
 
@@ -299,9 +320,14 @@ const AuctionInterface: React.FC = () => {
                 {isAuctionActive && isAuthenticated && (
                     <div className="flex space-x-2 w-full mt-4">
                         <Input
-                            type="number"
+                            type="text"
                             value={bidAmount}
-                            onChange={(e) => setBidAmount(e.target.value)}
+                            onChange={(e) => {
+                                const value = e.target.value;
+                                if (value === '' || /^\d*\.?\d{0,1}$/.test(value)) {
+                                    setBidAmount(value);
+                                }
+                            }}
                             placeholder="Enter bid amount [millions]"
                             className="flex-grow"
                         />
@@ -341,7 +367,10 @@ const AuctionInterface: React.FC = () => {
             </CardContent>
             {alertInfo.type && (
                 <CardFooter>
-                    <Alert variant={alertInfo.type === 'error' ? 'destructive' : 'default'}>
+                    <Alert
+                        variant={alertInfo.type === 'error' ? 'destructive' : 'default'}
+                        className={alertInfo.message ? 'visible' : 'hidden'}
+                    >
                         <AlertTitle>{alertInfo.type === 'error' ? 'Error' : 'Warning'}</AlertTitle>
                         <AlertDescription>{alertInfo.message}</AlertDescription>
                     </Alert>
