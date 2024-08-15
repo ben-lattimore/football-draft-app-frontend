@@ -16,6 +16,7 @@ type Player = {
 type Bid = {
     amount: number;
     bidder: string;
+    timestamp: Date;
 };
 
 type AuctionResult = {
@@ -23,12 +24,14 @@ type AuctionResult = {
     amount: number | null;
     player: string | null;
     newBudget?: number | null;
+    allBids: Bid[];
 };
 
 const AuctionInterface: React.FC = () => {
     const socketRef = useRef<Socket | null>(null);
     const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
     const [currentBid, setCurrentBid] = useState<Bid | null>(null);
+    const [allBids, setAllBids] = useState<Bid[]>([]);
     const [isAuctionActive, setIsAuctionActive] = useState<boolean>(false);
     const [bidAmount, setBidAmount] = useState<string>('');
     const [error, setError] = useState<string | null>(null);
@@ -110,19 +113,22 @@ const AuctionInterface: React.FC = () => {
             setCurrentPlayer(state.currentPlayer);
             setCurrentBid(state.currentBid);
             setIsAuctionActive(state.auctionActive);
+            setAllBids(state.allBids || []);
         });
 
-        newSocket.on('auctionStarted', ({ player, currentBid }) => {
-            console.log('Auction started', { player, currentBid });
+        newSocket.on('auctionStarted', ({ player, currentBid, allBids }) => {
+            console.log('Auction started', { player, currentBid, allBids });
             setCurrentPlayer(player);
             setCurrentBid(currentBid);
             setIsAuctionActive(true);
+            setAllBids(allBids || []);
         });
 
         newSocket.on('auctionStopped', (result: AuctionResult) => {
             console.log('Auction stopped', result);
             setIsAuctionActive(false);
             setLastAuctionResult(result);
+            setAllBids(result.allBids || []);
             setError(null);
             if (result.newBudget !== undefined && user && result.winner === user.username) {
                 console.log('Updating budget from auction result:', result.newBudget);
@@ -133,9 +139,10 @@ const AuctionInterface: React.FC = () => {
             }
         });
 
-        newSocket.on('newBid', (bid: Bid) => {
-            console.log('New bid received', bid);
-            setCurrentBid(bid);
+        newSocket.on('newBid', ({ currentBid, allBids }) => {
+            console.log('New bid received', { currentBid, allBids });
+            setCurrentBid(currentBid);
+            setAllBids(allBids);
         });
 
         newSocket.on('error', ({ message }) => {
@@ -253,6 +260,23 @@ const AuctionInterface: React.FC = () => {
                             <p className="text-xl font-semibold mt-4">
                                 Current Bid: {currentBid ? `£${currentBid.amount} million by ${currentBid.bidder}` : 'No bids yet'}
                             </p>
+                            <div className="mt-4">
+                                <h3 className="text-lg font-semibold mb-2">Bid History:</h3>
+                                <div className="max-h-40 overflow-y-auto">
+                                    {allBids.length > 0 ? (
+                                        allBids.slice().reverse().map((bid, index) => (
+                                            <div key={index} className="mb-1">
+                                                <span className="font-medium">{bid.bidder}</span>: £{bid.amount} million
+                                                <span className="text-sm text-gray-500 ml-2">
+                                                    {new Date(bid.timestamp).toLocaleTimeString()}
+                                                </span>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <p>No bids yet</p>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 ) : (
@@ -296,7 +320,7 @@ const AuctionInterface: React.FC = () => {
                         <AlertTitle>Last Auction Result</AlertTitle>
                         <AlertDescription>
                             {lastAuctionResult.winner
-                                ? `${lastAuctionResult.winner} won ${lastAuctionResult.player} for £${lastAuctionResult.amount}`
+                                ? `${lastAuctionResult.winner} won ${lastAuctionResult.player} for £${lastAuctionResult.amount} million`
                                 : 'No winner in the last auction.'}
                         </AlertDescription>
                     </Alert>
