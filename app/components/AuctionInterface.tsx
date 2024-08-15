@@ -275,7 +275,7 @@ const AuctionInterface: React.FC = () => {
                     {isAuctionActive ? "Active Auction" : "Auction Not Active"}
                 </CardTitle>
                 {isAuthenticated && (
-                    <p className="text-lg">Your remaining budget: £{userBudget !== null ? userBudget : 'Loading...'} million</p>
+                    <p className="text-lg">Your remaining budget: £{userBudget !== null ? Number(userBudget).toFixed(1) : 'Loading...'} million</p>
                 )}
             </CardHeader>
             <CardContent className="space-y-4">
