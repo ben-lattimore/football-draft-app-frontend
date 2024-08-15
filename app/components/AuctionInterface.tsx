@@ -38,6 +38,9 @@ const AuctionInterface: React.FC = () => {
     const [lastAuctionResult, setLastAuctionResult] = useState<AuctionResult | null>(null);
     const [userBudget, setUserBudget] = useState<number | null>(null);
     const { isAuthenticated, user, isLoading } = useAuth();
+    const [alertInfo, setAlertInfo] = useState<{ message: string; type: 'error' | 'warning' | null }>({ message: '', type: null });
+
+
 
     const fetchUserBudget = useCallback(async () => {
         console.log('Fetching user budget');
@@ -124,7 +127,7 @@ const AuctionInterface: React.FC = () => {
             setAllBids(allBids || []);
         });
 
-        newSocket.on('auctionStopped', (result: AuctionResult) => {
+        newSocket.on('auctionStopped', (result: AuctionResult & { movedToBin?: boolean }) => {
             console.log('Auction stopped', result);
             setIsAuctionActive(false);
             setLastAuctionResult(result);
@@ -137,6 +140,17 @@ const AuctionInterface: React.FC = () => {
                 console.log('Fetching updated budget after auction');
                 fetchUserBudget();
             }
+            if (result.movedToBin) {
+                console.log('Player moved to bin');
+                setAlertInfo({
+                    message: `${result.player} has been moved to the bin due to no bids.`,
+                    type: 'warning'
+                });
+                // Clear the alert after 5 seconds
+                setTimeout(() => setAlertInfo({ message: '', type: null }), 5000);
+            } else {
+                setAlertInfo({ message: '', type: null });
+            }
         });
 
         newSocket.on('newBid', ({ currentBid, allBids }) => {
@@ -147,7 +161,7 @@ const AuctionInterface: React.FC = () => {
 
         newSocket.on('error', ({ message }) => {
             console.error('Socket error:', message);
-            setError(message);
+            setAlertInfo({ message, type: 'error' });
         });
 
         socketRef.current = newSocket;
@@ -168,7 +182,7 @@ const AuctionInterface: React.FC = () => {
                 socketRef.current = null;
             }
         };
-    }, [connectSocket, isLoading, isAuthenticated, fetchUserBudget]);
+    }, [connectSocket, isLoading, isAuthenticated, fetchUserBudget, user]);
 
     const handleBid = useCallback(() => {
         console.log('Attempting to place bid', { bidAmount, user, userBudget });
@@ -326,11 +340,11 @@ const AuctionInterface: React.FC = () => {
                     </Alert>
                 )}
             </CardContent>
-            {error && (
+            {alertInfo.type && (
                 <CardFooter>
-                    <Alert variant="destructive">
-                        <AlertTitle>Error</AlertTitle>
-                        <AlertDescription>{error}</AlertDescription>
+                    <Alert variant={alertInfo.type === 'error' ? 'destructive' : 'warning'}>
+                        <AlertTitle>{alertInfo.type === 'error' ? 'Error' : 'Warning'}</AlertTitle>
+                        <AlertDescription>{alertInfo.message}</AlertDescription>
                     </Alert>
                 </CardFooter>
             )}

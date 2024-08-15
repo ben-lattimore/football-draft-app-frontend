@@ -24,6 +24,9 @@ export function Navigation() {
                 <Link href="/teams" passHref>
                     <Button variant="ghost">Teams</Button>
                 </Link>
+                <Link href="/bin" passHref>
+                    <Button variant="ghost">Bin</Button>
+                </Link>
                 {isAuthenticated ? (
                     <>
                         <span className="mr-4">Welcome, {user?.username}!</span>
