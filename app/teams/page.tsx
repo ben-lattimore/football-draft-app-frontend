@@ -23,6 +23,7 @@ type User = {
     username: string;
     isAdmin: boolean;
     wonPlayers: WonPlayer[];
+    budget: number; // Add this line
 };
 
 type GroupedPlayers = {
@@ -35,6 +36,11 @@ export default function TeamsPage() {
     const [teams, setTeams] = useState<User[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const INITIAL_BUDGET = 100; // Initial budget in millions
+    const calculateRemainingBudget = (wonPlayers: WonPlayer[]): number => {
+        const totalSpent = wonPlayers.reduce((total, player) => total + player.amount, 0);
+        return Math.max(INITIAL_BUDGET - totalSpent, 0); // Ensure budget doesn't go negative
+    };
 
     useEffect(() => {
         const fetchTeams = async () => {
@@ -99,10 +105,12 @@ export default function TeamsPage() {
             <h1 className="text-3xl font-bold mb-6">Teams</h1>
             {teams.map((user) => {
                 const groupedPlayers = groupPlayersByPosition(user.wonPlayers);
+                const remainingBudget = calculateRemainingBudget(user.wonPlayers);
                 return (
                     <Card key={user._id} className="mb-6">
                         <CardHeader>
                             <CardTitle>{user.username}'s Team</CardTitle>
+                            <p className="text-lg">Remaining Budget: £{remainingBudget.toFixed(1)} million</p>
                         </CardHeader>
                         <CardContent>
                             {positionOrder.map((position) => {
