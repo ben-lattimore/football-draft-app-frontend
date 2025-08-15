@@ -8,9 +8,29 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 type Player = {
     _id: string;
-    name: string;
-    player_image: string;
+    // Legacy fields
+    name?: string;
+    player_image?: string;
     position: string;
+    club?: string;
+    
+    // New FPL fields
+    player_id?: number;
+    web_name?: string;
+    first_name?: string;
+    second_name?: string;
+    team_name?: string;
+    team_short_name?: string;
+    element_type?: number;
+    now_cost?: number;
+    total_points?: number;
+    form?: string;
+    selected_by_percent?: string;
+    minutes?: number;
+    goals_scored?: number;
+    assists?: number;
+    clean_sheets?: number;
+    photo_url?: string;
 };
 
 type Bid = {
@@ -287,6 +307,29 @@ const AuctionInterface: React.FC = () => {
     }
 
     const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+    
+    // Helper functions for player data
+    const getPlayerName = (player: Player) => {
+        return player.name || player.web_name || `${player.first_name || ''} ${player.second_name || ''}`.trim() || 'Unknown Player';
+    };
+    
+    const getPlayerImage = (player: Player) => {
+        return player.photo_url || player.player_image || '/default-player.png';
+    };
+    
+    const getTeamName = (player: Player) => {
+        return player.team_name || player.club || 'Unknown Team';
+    };
+    
+    const formatPosition = (position: string) => {
+        const posMap: { [key: string]: string } = {
+            'GK': 'Goalkeeper',
+            'DEF': 'Defender', 
+            'MID': 'Midfielder',
+            'FWD': 'Forward'
+        };
+        return posMap[position.toUpperCase()] || capitalize(position);
+    };
 
     return (
         <Card className="w-full max-w-4xl mx-auto h-[calc(70vh-4rem)] overflow-y-auto">
@@ -303,17 +346,65 @@ const AuctionInterface: React.FC = () => {
                     <div className="flex flex-col md:flex-row gap-4">
                         <div className="w-full md:w-1/2">
                             <img
-                                src={currentPlayer.player_image}
-                                alt={currentPlayer.name}
+                                src={getPlayerImage(currentPlayer)}
+                                alt={getPlayerName(currentPlayer)}
                                 className="w-full h-96 object-cover rounded-lg"
+                                onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.src = '/default-player.png';
+                                }}
                             />
                         </div>
-                        <div className="w-full md:w-1/2 space-y-2">
-                            <p className="text-2xl font-bold">{currentPlayer.name}</p>
-                            <p className="text-lg">Position: {capitalize(currentPlayer.position)}</p>
+                        <div className="w-full md:w-1/2 space-y-3">
+                            <div>
+                                <p className="text-2xl font-bold">{getPlayerName(currentPlayer)}</p>
+                                <p className="text-lg text-gray-600">{getTeamName(currentPlayer)} • {formatPosition(currentPlayer.position)}</p>
+                            </div>
+                            
+                            {/* FPL Stats */}
+                            {currentPlayer.now_cost && (
+                                <div className="grid grid-cols-2 gap-4 p-3 bg-gray-50 rounded-lg">
+                                    <div className="text-center">
+                                        <p className="text-sm text-gray-600">FPL Price</p>
+                                        <p className="text-lg font-semibold">£{(currentPlayer.now_cost / 10).toFixed(1)}m</p>
+                                    </div>
+                                    <div className="text-center">
+                                        <p className="text-sm text-gray-600">Total Points</p>
+                                        <p className="text-lg font-semibold">{currentPlayer.total_points || 0}</p>
+                                    </div>
+                                    <div className="text-center">
+                                        <p className="text-sm text-gray-600">Form</p>
+                                        <p className="text-lg font-semibold">{currentPlayer.form || '0.0'}</p>
+                                    </div>
+                                    <div className="text-center">
+                                        <p className="text-sm text-gray-600">Selected By</p>
+                                        <p className="text-lg font-semibold">{currentPlayer.selected_by_percent || '0.0'}%</p>
+                                    </div>
+                                    {currentPlayer.position !== 'GK' && (
+                                        <>
+                                            <div className="text-center">
+                                                <p className="text-sm text-gray-600">Goals</p>
+                                                <p className="text-lg font-semibold">{currentPlayer.goals_scored || 0}</p>
+                                            </div>
+                                            <div className="text-center">
+                                                <p className="text-sm text-gray-600">Assists</p>
+                                                <p className="text-lg font-semibold">{currentPlayer.assists || 0}</p>
+                                            </div>
+                                        </>
+                                    )}
+                                    {currentPlayer.position === 'GK' && (
+                                        <div className="text-center col-span-2">
+                                            <p className="text-sm text-gray-600">Clean Sheets</p>
+                                            <p className="text-lg font-semibold">{currentPlayer.clean_sheets || 0}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                            
                             <p className="text-xl font-semibold mt-4">
                                 Current Bid: {currentBid ? `£${currentBid.amount} million by ${currentBid.bidder}` : 'No bids yet'}
                             </p>
+                            
                             <div className="mt-4">
                                 <h3 className="text-lg font-semibold mb-2">Bid History:</h3>
                                 <div className="max-h-40 overflow-y-auto">

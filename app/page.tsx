@@ -6,10 +6,29 @@ import { useAuth } from './contexts/AuthContext';
 
 type Player = {
     _id: string;
-    name: string;
-    player_image: string;
-    club: string;
+    // Legacy fields
+    name?: string;
+    player_image?: string;
+    club?: string;
     position: string;
+    
+    // New FPL fields
+    player_id?: number;
+    web_name?: string;
+    first_name?: string;
+    second_name?: string;
+    team_name?: string;
+    team_short_name?: string;
+    element_type?: number;
+    now_cost?: number;
+    total_points?: number;
+    form?: string;
+    selected_by_percent?: string;
+    minutes?: number;
+    goals_scored?: number;
+    assists?: number;
+    clean_sheets?: number;
+    photo_url?: string;
 };
 
 export default function Home() {
@@ -45,7 +64,7 @@ export default function Home() {
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
-            {players.length > 0 && <AuctionInterface />}
+            <AuctionInterface />
         </div>
     );
 }
