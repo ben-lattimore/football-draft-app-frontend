@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import DefaultPlayerSVG from './DefaultPlayerSVG';
 
 type Player = {
     _id: string;
@@ -65,6 +66,7 @@ const AuctionInterface: React.FC = () => {
     const [searchResults, setSearchResults] = useState<Player[]>([]);
     const [isSearching, setIsSearching] = useState<boolean>(false);
     const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+    const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
 
     const fetchUserBudget = useCallback(async () => {
         console.log('Fetching user budget');
@@ -355,6 +357,39 @@ const AuctionInterface: React.FC = () => {
         socketRef.current.emit('setAuctionPlayer', { playerId: player._id });
     }, [socketRef, isAuthenticated, user, isAuctionActive]);
 
+    // Function to select random player by position
+    const handleRandomPlayerSelectByPosition = useCallback((position: string) => {
+        if (!socketRef.current || !isAuthenticated || !user?.isAdmin) {
+            setAlertInfo({ message: 'Unable to select random player. Admin access required.', type: 'error' });
+            return;
+        }
+
+        if (isAuctionActive) {
+            setAlertInfo({ message: `Cannot select random ${position} while an auction is active`, type: 'error' });
+            return;
+        }
+
+        console.log(`Selecting random ${position} player for auction`);
+        socketRef.current.emit('setRandomAuctionPlayerByPosition', { position });
+    }, [socketRef, isAuthenticated, user, isAuctionActive]);
+    
+    // Keep original function for backwards compatibility
+    const handleRandomPlayerSelect = useCallback(() => {
+        if (!socketRef.current || !isAuthenticated || !user?.isAdmin) {
+            setAlertInfo({ message: 'Unable to select random player. Admin access required.', type: 'error' });
+            return;
+        }
+
+        if (isAuctionActive) {
+            setAlertInfo({ message: 'Cannot select random player while an auction is active', type: 'error' });
+            return;
+        }
+
+        console.log('Selecting random player for auction');
+        socketRef.current.emit('setRandomAuctionPlayer');
+    }, [socketRef, isAuthenticated, user, isAuctionActive]);
+
+
     // Debounced search
     useEffect(() => {
         const timeoutId = setTimeout(() => {
@@ -382,7 +417,11 @@ const AuctionInterface: React.FC = () => {
     };
     
     const getPlayerImage = (player: Player) => {
-        return player.photo_url || player.player_image || '/default-player.png';
+        return player.photo_url || player.player_image;
+    };
+    
+    const handleImageError = (playerId: string) => {
+        setImageErrors(prev => new Set(prev).add(playerId));
     };
     
     const getTeamName = (player: Player) => {
@@ -390,6 +429,7 @@ const AuctionInterface: React.FC = () => {
     };
     
     const formatPosition = (position: string) => {
+        if (!position) return 'Unknown';
         const posMap: { [key: string]: string } = {
             'GK': 'Goalkeeper',
             'DEF': 'Defender', 
@@ -397,6 +437,18 @@ const AuctionInterface: React.FC = () => {
             'FWD': 'Forward'
         };
         return posMap[position.toUpperCase()] || capitalize(position);
+    };
+    
+    // Get position color for styling
+    const getPositionColor = (position: string) => {
+        if (!position) return 'gray';
+        const colorMap: { [key: string]: string } = {
+            'GK': 'yellow',
+            'DEF': 'blue',
+            'MID': 'green',
+            'FWD': 'red'
+        };
+        return colorMap[position.toUpperCase()] || 'gray';
     };
 
     return (
@@ -413,15 +465,18 @@ const AuctionInterface: React.FC = () => {
                 {currentPlayer ? (
                     <div className="flex flex-col md:flex-row gap-4">
                         <div className="w-full md:w-1/2">
-                            <img
-                                src={getPlayerImage(currentPlayer)}
-                                alt={getPlayerName(currentPlayer)}
-                                className="w-full h-[32rem] object-cover rounded-lg"
-                                onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    target.src = '/default-player.png';
-                                }}
-                            />
+                            {getPlayerImage(currentPlayer) && !imageErrors.has(currentPlayer._id) ? (
+                                <img
+                                    src={getPlayerImage(currentPlayer)}
+                                    alt={getPlayerName(currentPlayer)}
+                                    className="w-full h-[32rem] object-cover rounded-lg"
+                                    onError={() => handleImageError(currentPlayer._id)}
+                                />
+                            ) : (
+                                <div className="w-full h-[32rem] flex items-center justify-center bg-gray-100 rounded-lg">
+                                    <DefaultPlayerSVG size={200} className="w-48 h-48" />
+                                </div>
+                            )}
                         </div>
                         <div className="w-full md:w-1/2 space-y-3">
                             <div>
@@ -543,6 +598,46 @@ const AuctionInterface: React.FC = () => {
                                         {isSearching && <div className="flex items-center px-3 text-sm text-gray-500">Searching...</div>}
                                     </div>
                                     
+                                    {/* Position-specific random player buttons */}
+                                    <div className="flex flex-wrap justify-center md:justify-end gap-2 mt-3">
+                                        <Button
+                                            onClick={() => handleRandomPlayerSelectByPosition('GK')}
+                                            disabled={isAuctionActive}
+                                            variant="outline"
+                                            className="bg-yellow-50 border-yellow-300 text-yellow-700 hover:bg-yellow-100"
+                                            size="sm"
+                                        >
+                                            🎲 GK
+                                        </Button>
+                                        <Button
+                                            onClick={() => handleRandomPlayerSelectByPosition('DEF')}
+                                            disabled={isAuctionActive}
+                                            variant="outline"
+                                            className="bg-blue-50 border-blue-300 text-blue-700 hover:bg-blue-100"
+                                            size="sm"
+                                        >
+                                            🎲 DEF
+                                        </Button>
+                                        <Button
+                                            onClick={() => handleRandomPlayerSelectByPosition('MID')}
+                                            disabled={isAuctionActive}
+                                            variant="outline"
+                                            className="bg-green-50 border-green-300 text-green-700 hover:bg-green-100"
+                                            size="sm"
+                                        >
+                                            🎲 MID
+                                        </Button>
+                                        <Button
+                                            onClick={() => handleRandomPlayerSelectByPosition('FWD')}
+                                            disabled={isAuctionActive}
+                                            variant="outline"
+                                            className="bg-red-50 border-red-300 text-red-700 hover:bg-red-100"
+                                            size="sm"
+                                        >
+                                            🎲 FWD
+                                        </Button>
+                                    </div>
+                                    
                                     {selectedPlayer && (
                                         <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
                                             <p className="text-sm font-medium text-green-800">
@@ -556,15 +651,18 @@ const AuctionInterface: React.FC = () => {
                                             {searchResults.map((player) => (
                                                 <div key={player._id} className="flex items-center justify-between p-3 border-b last:border-b-0 hover:bg-gray-50">
                                                     <div className="flex items-center space-x-3">
-                                                        <img 
-                                                            src={getPlayerImage(player)} 
-                                                            alt={getPlayerName(player)}
-                                                            className="w-12 h-12 rounded-full object-cover"
-                                                            onError={(e) => {
-                                                                const target = e.target as HTMLImageElement;
-                                                                target.src = '/default-player.png';
-                                                            }}
-                                                        />
+                                                        {getPlayerImage(player) && !imageErrors.has(player._id) ? (
+                                                            <img 
+                                                                src={getPlayerImage(player)} 
+                                                                alt={getPlayerName(player)}
+                                                                className="w-12 h-12 rounded-full object-cover"
+                                                                onError={() => handleImageError(player._id)}
+                                                            />
+                                                        ) : (
+                                                            <div className="w-12 h-12 flex items-center justify-center">
+                                                                <DefaultPlayerSVG size={48} className="w-12 h-12" />
+                                                            </div>
+                                                        )}
                                                         <div>
                                                             <p className="font-medium">{getPlayerName(player)}</p>
                                                             <p className="text-sm text-gray-500">

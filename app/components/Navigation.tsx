@@ -20,10 +20,42 @@ export function Navigation() {
             <Link href="/" className="text-xl font-bold">
                 Football Draft
             </Link>
-            <div>
+            <div className="flex items-center space-x-2">
                 <Link href="/teams" passHref>
                     <Button variant="ghost">Teams</Button>
                 </Link>
+                
+                {/* Player Status Links */}
+                <div className="hidden md:flex items-center space-x-1">
+                    <Link href="/players-won" passHref>
+                        <Button variant="ghost" size="sm">Players Won</Button>
+                    </Link>
+                    <Link href="/players-remaining" passHref>
+                        <Button variant="ghost" size="sm">Players Remaining</Button>
+                    </Link>
+                    <Link href="/players-not-bid-on" passHref>
+                        <Button variant="ghost" size="sm">Players Not Bid On</Button>
+                    </Link>
+                </div>
+                
+                {/* Mobile dropdown menu for player status */}
+                <div className="md:hidden">
+                    <select 
+                        onChange={(e) => {
+                            if (e.target.value) {
+                                window.location.href = e.target.value;
+                            }
+                        }}
+                        className="bg-gray-800 text-white border border-gray-600 rounded px-2 py-1 text-sm"
+                        defaultValue=""
+                    >
+                        <option value="" disabled>Players</option>
+                        <option value="/players-won">Players Won</option>
+                        <option value="/players-remaining">Players Remaining</option>
+                        <option value="/players-not-bid-on">Players Not Bid On</option>
+                    </select>
+                </div>
+                
                 {isAuthenticated ? (
                     <>
                         <span className="mr-4">Welcome, {user?.username}!</span>
