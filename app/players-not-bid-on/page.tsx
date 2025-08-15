@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import DefaultPlayerSVG from '../components/DefaultPlayerSVG';
 
 type Player = {
     _id: string;
@@ -128,15 +129,9 @@ const PlayersNotBidOnPage: React.FC = () => {
                             <Card key={player._id} className="hover:shadow-lg transition-shadow border-orange-200">
                                 <CardHeader className="pb-3">
                                     <div className="flex items-start space-x-3">
-                                        <img 
-                                            src={getPlayerImage(player)} 
-                                            alt={getPlayerName(player)}
-                                            className="w-16 h-16 rounded-full object-cover"
-                                            onError={(e) => {
-                                                const target = e.target as HTMLImageElement;
-                                                target.src = '/default-player.png';
-                                            }}
-                                        />
+                                        <div className="w-16 h-16 flex items-center justify-center">
+                                            <DefaultPlayerSVG size={64} className="w-16 h-16" />
+                                        </div>
                                         <div className="flex-1 min-w-0">
                                             <CardTitle className="text-lg font-semibold truncate">
                                                 {getPlayerName(player)}

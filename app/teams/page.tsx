@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import DefaultPlayerSVG from '../components/DefaultPlayerSVG';
 
 // Updated Player type to match new FPL data structure
 type Player = {
@@ -130,15 +131,9 @@ export default function TeamsPage() {
         <Card key={wonPlayer._id} className={`hover:shadow-lg transition-shadow border-2 ${getPositionColor(wonPlayer.player.position)}`}>
             <CardHeader className="pb-3">
                 <div className="flex items-start space-x-3">
-                    <img 
-                        src={getPlayerImage(wonPlayer.player)} 
-                        alt={getPlayerName(wonPlayer.player)}
-                        className="w-16 h-16 rounded-full object-cover"
-                        onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.src = '/default-player.png';
-                        }}
-                    />
+                    <div className="w-16 h-16 flex items-center justify-center">
+                        <DefaultPlayerSVG size={64} className="w-16 h-16" />
+                    </div>
                     <div className="flex-1 min-w-0">
                         <CardTitle className="text-lg font-semibold truncate">
                             {getPlayerName(wonPlayer.player)}
