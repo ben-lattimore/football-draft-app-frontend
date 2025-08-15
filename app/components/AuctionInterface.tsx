@@ -59,6 +59,12 @@ const AuctionInterface: React.FC = () => {
     const [userBudget, setUserBudget] = useState<number | null>(null);
     const { isAuthenticated, user, isLoading } = useAuth();
     const [alertInfo, setAlertInfo] = useState<{ message: string; type: 'error' | 'warning' | null }>({ message: '', type: null });
+    
+    // Player search states
+    const [searchQuery, setSearchQuery] = useState<string>('');
+    const [searchResults, setSearchResults] = useState<Player[]>([]);
+    const [isSearching, setIsSearching] = useState<boolean>(false);
+    const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
 
     const fetchUserBudget = useCallback(async () => {
         console.log('Fetching user budget');
@@ -197,6 +203,12 @@ const AuctionInterface: React.FC = () => {
             setAlertInfo({ message, type: 'error' });
         });
 
+        newSocket.on('auctionPlayerSet', (data) => {
+            console.log('Player set for auction:', data);
+            setAlertInfo({ message: data.message, type: null });
+            setSelectedPlayer(data.player);
+        });
+
         socketRef.current = newSocket;
     }, [fetchUserBudget, user]);
 
@@ -299,6 +311,62 @@ const AuctionInterface: React.FC = () => {
             setAlertInfo({ message: 'Unable to stop auction. Please try again.', type: 'error' });
         }
     }, [isAuthenticated, user]);
+
+    // Player search functions
+    const searchPlayers = useCallback(async (query: string) => {
+        if (query.length < 2) {
+            setSearchResults([]);
+            return;
+        }
+
+        setIsSearching(true);
+        try {
+            const response = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/api/players/search?q=${encodeURIComponent(query)}`
+            );
+            const data = await response.json();
+            
+            if (response.ok) {
+                setSearchResults(data.results || []);
+            } else {
+                console.error('Search error:', data.message);
+                setAlertInfo({ message: 'Error searching players: ' + data.message, type: 'error' });
+            }
+        } catch (error) {
+            console.error('Search error:', error);
+            setAlertInfo({ message: 'Error searching players', type: 'error' });
+        } finally {
+            setIsSearching(false);
+        }
+    }, []);
+
+    const handlePlayerSelect = useCallback((player: Player) => {
+        if (!socketRef.current || !isAuthenticated || !user?.isAdmin) {
+            setAlertInfo({ message: 'Unable to select player. Admin access required.', type: 'error' });
+            return;
+        }
+
+        if (isAuctionActive) {
+            setAlertInfo({ message: 'Cannot select player while an auction is active', type: 'error' });
+            return;
+        }
+
+        console.log('Selecting player for auction:', player);
+        socketRef.current.emit('setAuctionPlayer', { playerId: player._id });
+    }, [socketRef, isAuthenticated, user, isAuctionActive]);
+
+    // Debounced search
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            if (searchQuery) {
+                searchPlayers(searchQuery);
+            } else {
+                setSearchResults([]);
+            }
+        }, 300);
+
+        return () => clearTimeout(timeoutId);
+    }, [searchQuery, searchPlayers]);
 
     console.log('Current state before render', { currentPlayer, currentBid, isAuctionActive, error, isAuthenticated, user, userBudget });
 
@@ -456,22 +524,93 @@ const AuctionInterface: React.FC = () => {
                 )}
 
                 {isAuthenticated && user && user.isAdmin && (
-                    <div className="flex space-x-2 w-full mt-4">
-                        <Button
-                            onClick={handleStartAuction}
-                            disabled={isAuctionActive}
-                            className="flex-grow"
-                        >
-                            Start Auction
-                        </Button>
-                        <Button
-                            onClick={handleStopAuction}
-                            disabled={!isAuctionActive}
-                            className="flex-grow"
-                        >
-                            Stop Auction
-                        </Button>
-                    </div>
+                    <>
+                        {/* Player Search Section - Only for Admins */}
+                        {!isAuctionActive && (
+                            <Card className="mt-4 border-blue-200">
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-lg text-blue-700">Admin: Select Player for Next Auction</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                    <div className="flex space-x-2">
+                                        <Input
+                                            type="text"
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            placeholder="Search for a player (e.g., 'salah', 'haaland')..."
+                                            className="flex-grow"
+                                        />
+                                        {isSearching && <div className="flex items-center px-3 text-sm text-gray-500">Searching...</div>}
+                                    </div>
+                                    
+                                    {selectedPlayer && (
+                                        <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                                            <p className="text-sm font-medium text-green-800">
+                                                ✓ {getPlayerName(selectedPlayer)} selected for next auction
+                                            </p>
+                                        </div>
+                                    )}
+                                    
+                                    {searchResults.length > 0 && (
+                                        <div className="max-h-64 overflow-y-auto border rounded-lg">
+                                            {searchResults.map((player) => (
+                                                <div key={player._id} className="flex items-center justify-between p-3 border-b last:border-b-0 hover:bg-gray-50">
+                                                    <div className="flex items-center space-x-3">
+                                                        <img 
+                                                            src={getPlayerImage(player)} 
+                                                            alt={getPlayerName(player)}
+                                                            className="w-12 h-12 rounded-full object-cover"
+                                                            onError={(e) => {
+                                                                const target = e.target as HTMLImageElement;
+                                                                target.src = '/default-player.png';
+                                                            }}
+                                                        />
+                                                        <div>
+                                                            <p className="font-medium">{getPlayerName(player)}</p>
+                                                            <p className="text-sm text-gray-500">
+                                                                {formatPosition(player.position)} • {getTeamName(player)} • 
+                                                                £{player.now_cost ? (player.now_cost / 10).toFixed(1) : '0.0'}m • 
+                                                                {player.total_points || 0} pts
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <Button
+                                                        size="sm"
+                                                        onClick={() => handlePlayerSelect(player)}
+                                                        className="ml-2"
+                                                    >
+                                                        Select
+                                                    </Button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                    
+                                    {searchQuery.length >= 2 && searchResults.length === 0 && !isSearching && (
+                                        <p className="text-sm text-gray-500 text-center py-4">No available players found for "{searchQuery}"</p>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        )}
+                        
+                        {/* Admin Controls */}
+                        <div className="flex space-x-2 w-full mt-4">
+                            <Button
+                                onClick={handleStartAuction}
+                                disabled={isAuctionActive}
+                                className="flex-grow"
+                            >
+                                Start Auction
+                            </Button>
+                            <Button
+                                onClick={handleStopAuction}
+                                disabled={!isAuctionActive}
+                                className="flex-grow"
+                            >
+                                Stop Auction
+                            </Button>
+                        </div>
+                    </>
                 )}
 
                 {lastAuctionResult && (
