@@ -389,6 +389,22 @@ const AuctionInterface: React.FC = () => {
         socketRef.current.emit('setRandomAuctionPlayer');
     }, [socketRef, isAuthenticated, user, isAuctionActive]);
 
+    // Function to select completely random player (Banter)
+    const handleBanterPlayerSelect = useCallback(() => {
+        if (!socketRef.current || !isAuthenticated || !user?.isAdmin) {
+            setAlertInfo({ message: 'Unable to select banter player. Admin access required.', type: 'error' });
+            return;
+        }
+
+        if (isAuctionActive) {
+            setAlertInfo({ message: 'Cannot select banter player while an auction is active', type: 'error' });
+            return;
+        }
+
+        console.log('Selecting random banter player for auction');
+        socketRef.current.emit('setRandomAuctionPlayer');
+    }, [socketRef, isAuthenticated, user, isAuctionActive]);
+
 
     // Debounced search
     useEffect(() => {
@@ -635,6 +651,15 @@ const AuctionInterface: React.FC = () => {
                                             size="sm"
                                         >
                                             🎲 FWD
+                                        </Button>
+                                        <Button
+                                            onClick={handleBanterPlayerSelect}
+                                            disabled={isAuctionActive}
+                                            variant="outline"
+                                            className="bg-purple-50 border-purple-300 text-purple-700 hover:bg-purple-100"
+                                            size="sm"
+                                        >
+                                            🎭 Banter
                                         </Button>
                                     </div>
                                     
