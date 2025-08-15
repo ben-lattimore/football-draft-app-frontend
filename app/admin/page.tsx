@@ -5,6 +5,7 @@ import { useAuth } from '@/app/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import Link from 'next/link';
 
 type Player = {
     _id: string;
@@ -375,13 +376,18 @@ export default function AdminPage() {
                 </CardContent>
             </Card>
 
-            {/* Quick Actions */}
+            {/* Admin Actions */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Export & Analysis Tools</CardTitle>
+                    <CardTitle>Admin Actions</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className="flex flex-wrap gap-4">
+                        <Link href="/admin/user-management">
+                            <Button variant="outline">
+                                👥 User Management
+                            </Button>
+                        </Link>
                         <Button variant="outline" disabled>
                             📊 Export User Data
                         </Button>
