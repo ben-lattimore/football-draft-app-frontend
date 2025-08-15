@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import Image from 'next/image';
 
 type Player = {
     name: string;
@@ -51,9 +52,11 @@ export default function PlayerNavigation({ players }: PlayerNavigationProps) {
             </CardHeader>
             <CardContent>
                 <div className="w-full h-[600px] mb-8 overflow-hidden rounded-lg">
-                    <img
-                        src={player.player_image}
+                    <Image
+                        src={player.player_image || ''}
                         alt={player.name}
+                        width={800}
+                        height={600}
                         className="w-full h-full object-cover object-center"
                     />
                 </div>

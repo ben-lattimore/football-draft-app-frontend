@@ -131,7 +131,8 @@ export default function UserManagementPage() {
             }
         } catch (error) {
             console.error('Network error:', error);
-            setAlertInfo({ message: `Network error: ${error.message}`, type: 'error' });
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+            setAlertInfo({ message: `Network error: ${errorMessage}`, type: 'error' });
         }
     };
 

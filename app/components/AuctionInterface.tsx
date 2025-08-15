@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { io, Socket } from 'socket.io-client';
 import { useAuth } from '@/app/contexts/AuthContext';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import io, { Socket } from 'socket.io-client';
 import DefaultPlayerSVG from './DefaultPlayerSVG';
+import Image from 'next/image';
 
 type Player = {
     _id: string;
@@ -482,9 +483,11 @@ const AuctionInterface: React.FC = () => {
                     <div className="flex flex-col md:flex-row gap-4">
                         <div className="w-full md:w-1/2">
                             {getPlayerImage(currentPlayer) && !imageErrors.has(currentPlayer._id) ? (
-                                <img
-                                    src={getPlayerImage(currentPlayer)}
+                                <Image
+                                    src={getPlayerImage(currentPlayer) || ''}
                                     alt={getPlayerName(currentPlayer)}
+                                    width={512}
+                                    height={512}
                                     className="w-full h-[32rem] object-cover rounded-lg"
                                     onError={() => handleImageError(currentPlayer._id)}
                                 />
@@ -677,9 +680,11 @@ const AuctionInterface: React.FC = () => {
                                                 <div key={player._id} className="flex items-center justify-between p-3 border-b last:border-b-0 hover:bg-gray-50">
                                                     <div className="flex items-center space-x-3">
                                                         {getPlayerImage(player) && !imageErrors.has(player._id) ? (
-                                                            <img 
-                                                                src={getPlayerImage(player)} 
+                                                            <Image 
+                                                                src={getPlayerImage(player) || ''} 
                                                                 alt={getPlayerName(player)}
+                                                                width={48}
+                                                                height={48}
                                                                 className="w-12 h-12 rounded-full object-cover"
                                                                 onError={() => handleImageError(player._id)}
                                                             />

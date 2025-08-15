@@ -3,9 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import DefaultPlayerSVG from '../components/DefaultPlayerSVG';
+import DefaultPlayerSVG from '@/app/components/DefaultPlayerSVG';
+import Image from 'next/image';
 
 type Player = {
     _id: string;
@@ -187,9 +187,11 @@ const PlayersRemainingPage: React.FC = () => {
                                 <CardHeader className="pb-3">
                                     <div className="flex items-start space-x-3">
                                         {getPlayerImage(player) && !imageErrors.has(player._id) ? (
-                                            <img 
-                                                src={getPlayerImage(player)} 
+                                            <Image 
+                                                src={getPlayerImage(player) || ''} 
                                                 alt={getPlayerName(player)}
+                                                width={64}
+                                                height={64}
                                                 className="w-16 h-16 rounded-full object-cover"
                                                 onError={() => handleImageError(player._id)}
                                             />
