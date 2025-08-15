@@ -332,7 +332,7 @@ const AuctionInterface: React.FC = () => {
     };
 
     return (
-        <Card className="w-full max-w-4xl mx-auto h-[calc(70vh-4rem)] overflow-y-auto">
+        <Card className="w-full max-w-7xl mx-auto min-h-[85vh] mt-2 overflow-y-auto">
             <CardHeader>
                 <CardTitle className="text-2xl">
                     {isAuctionActive ? "Active Auction" : "Auction Not Active"}
