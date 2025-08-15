@@ -26,7 +26,7 @@ type Player = {
 };
 
 type WonPlayer = {
-    player: Player;
+    player: Player | null;
     amount: number;
     auctionDate: string;
     _id: string;
@@ -70,6 +70,7 @@ export default function TeamsPage() {
         if (!position) return 'Unknown Position';
         const posMap: { [key: string]: string } = {
             'GK': 'Goalkeeper',
+            'GKP': 'Goalkeeper',
             'DEF': 'Defender', 
             'MID': 'Midfielder',
             'FWD': 'Forward'
@@ -80,6 +81,7 @@ export default function TeamsPage() {
     const getPositionColor = (position: string) => {
         const colors: { [key: string]: string } = {
             'GK': 'bg-yellow-100 text-yellow-800 border-yellow-200',
+            'GKP': 'bg-yellow-100 text-yellow-800 border-yellow-200',
             'DEF': 'bg-blue-100 text-blue-800 border-blue-200',
             'MID': 'bg-green-100 text-green-800 border-green-200',
             'FWD': 'bg-red-100 text-red-800 border-red-200'
@@ -113,8 +115,14 @@ export default function TeamsPage() {
 
     const groupPlayersByPosition = (players: WonPlayer[]): GroupedPlayers => {
         return players.reduce((acc, player) => {
+            // Skip if player object is null or undefined
+            if (!player.player) {
+                console.warn('Null player reference found in wonPlayers:', player);
+                return acc;
+            }
+            
             const position = player.player.position?.toUpperCase() || 'UNKNOWN';
-            const groupKey = position === 'GK' ? 'goalkeeper' : 
+            const groupKey = (position === 'GK' || position === 'GKP') ? 'goalkeeper' : 
                            position === 'DEF' ? 'defender' :
                            position === 'MID' ? 'midfielder' :
                            position === 'FWD' ? 'forward' : 'other';
@@ -127,49 +135,86 @@ export default function TeamsPage() {
         }, {} as GroupedPlayers);
     };
 
-    const renderPlayerCard = (wonPlayer: WonPlayer) => (
-        <Card key={wonPlayer._id} className={`hover:shadow-lg transition-shadow border-2 ${getPositionColor(wonPlayer.player.position)}`}>
-            <CardHeader className="pb-3">
-                <div className="flex items-start space-x-3">
-                    <div className="w-16 h-16 flex items-center justify-center">
-                        <DefaultPlayerSVG size={64} className="w-16 h-16" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <CardTitle className="text-lg font-semibold truncate">
-                            {getPlayerName(wonPlayer.player)}
-                        </CardTitle>
-                        <p className="text-sm text-gray-500">
-                            {getTeamName(wonPlayer.player)} • {formatPosition(wonPlayer.player.position)}
-                        </p>
-                    </div>
-                </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-                <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium text-gray-600">Bought for:</span>
-                        <span className="font-semibold text-green-600">£{wonPlayer.amount}m</span>
-                    </div>
-                    {wonPlayer.player.now_cost && (
-                        <div className="flex justify-between items-center">
-                            <span className="text-sm font-medium text-gray-600">FPL Price:</span>
-                            <span className="text-sm">£{(wonPlayer.player.now_cost / 10).toFixed(1)}m</span>
+    const renderPlayerCard = (wonPlayer: WonPlayer) => {
+        // Handle null player references
+        if (!wonPlayer.player) {
+            return (
+                <Card key={wonPlayer._id} className="hover:shadow-lg transition-shadow border-2 bg-red-50 border-red-200">
+                    <CardHeader className="pb-3">
+                        <div className="flex items-start space-x-3">
+                            <div className="w-16 h-16 flex items-center justify-center">
+                                <DefaultPlayerSVG size={64} className="w-16 h-16 text-red-400" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <CardTitle className="text-lg font-semibold truncate text-red-800">
+                                    Player Data Missing
+                                </CardTitle>
+                                <p className="text-sm text-red-600">
+                                    Player reference not found
+                                </p>
+                            </div>
                         </div>
-                    )}
-                    {wonPlayer.player.total_points && (
-                        <div className="flex justify-between items-center">
-                            <span className="text-sm font-medium text-gray-600">Points:</span>
-                            <span className="text-sm">{wonPlayer.player.total_points}</span>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                        <div className="space-y-2">
+                            <div className="flex justify-between items-center">
+                                <span className="text-sm font-medium text-gray-600">Bought for:</span>
+                                <span className="font-semibold text-green-600">£{wonPlayer.amount}m</span>
+                            </div>
+                            <div className="flex justify-between items-center pt-2 border-t border-gray-100">
+                                <span className="text-xs text-gray-500">Acquired:</span>
+                                <span className="text-xs text-gray-500">{new Date(wonPlayer.auctionDate).toLocaleDateString()}</span>
+                            </div>
                         </div>
-                    )}
-                    <div className="flex justify-between items-center pt-2 border-t border-gray-100">
-                        <span className="text-xs text-gray-500">Acquired:</span>
-                        <span className="text-xs text-gray-500">{new Date(wonPlayer.auctionDate).toLocaleDateString()}</span>
+                    </CardContent>
+                </Card>
+            );
+        }
+
+        return (
+            <Card key={wonPlayer._id} className={`hover:shadow-lg transition-shadow border-2 ${getPositionColor(wonPlayer.player.position)}`}>
+                <CardHeader className="pb-3">
+                    <div className="flex items-start space-x-3">
+                        <div className="w-16 h-16 flex items-center justify-center">
+                            <DefaultPlayerSVG size={64} className="w-16 h-16" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <CardTitle className="text-lg font-semibold truncate">
+                                {getPlayerName(wonPlayer.player)}
+                            </CardTitle>
+                            <p className="text-sm text-gray-500">
+                                {getTeamName(wonPlayer.player)} • {formatPosition(wonPlayer.player.position)}
+                            </p>
+                        </div>
                     </div>
-                </div>
-            </CardContent>
-        </Card>
-    );
+                </CardHeader>
+                <CardContent className="pt-0">
+                    <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                            <span className="text-sm font-medium text-gray-600">Bought for:</span>
+                            <span className="font-semibold text-green-600">£{wonPlayer.amount}m</span>
+                        </div>
+                        {wonPlayer.player.now_cost && (
+                            <div className="flex justify-between items-center">
+                                <span className="text-sm font-medium text-gray-600">FPL Price:</span>
+                                <span className="text-sm">£{(wonPlayer.player.now_cost / 10).toFixed(1)}m</span>
+                            </div>
+                        )}
+                        {wonPlayer.player.total_points && (
+                            <div className="flex justify-between items-center">
+                                <span className="text-sm font-medium text-gray-600">Points:</span>
+                                <span className="text-sm">{wonPlayer.player.total_points}</span>
+                            </div>
+                        )}
+                        <div className="flex justify-between items-center pt-2 border-t border-gray-100">
+                            <span className="text-xs text-gray-500">Acquired:</span>
+                            <span className="text-xs text-gray-500">{new Date(wonPlayer.auctionDate).toLocaleDateString()}</span>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+        );
+    };
 
     if (isLoading) {
         return (

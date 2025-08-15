@@ -68,6 +68,10 @@ const AuctionInterface: React.FC = () => {
     const [isSearching, setIsSearching] = useState<boolean>(false);
     const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
     const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
+    
+    // Countdown state
+    const [countdown, setCountdown] = useState<number>(10);
+    const [countdownActive, setCountdownActive] = useState<boolean>(false);
 
     const fetchUserBudget = useCallback(async () => {
         console.log('Fetching user budget');
@@ -159,6 +163,9 @@ const AuctionInterface: React.FC = () => {
             setCurrentBid(state.currentBid);
             setIsAuctionActive(state.auctionActive);
             setAllBids(state.allBids || []);
+            // Set countdown state from server
+            if (state.countdown !== undefined) setCountdown(state.countdown);
+            if (state.countdownActive !== undefined) setCountdownActive(state.countdownActive);
         });
 
         newSocket.on('auctionStarted', ({ player, currentBid, allBids }) => {
@@ -175,6 +182,9 @@ const AuctionInterface: React.FC = () => {
             setLastAuctionResult(result);
             setAllBids(result.allBids || []);
             setError(null);
+            // Reset countdown state
+            setCountdownActive(false);
+            setCountdown(10);
             if (result.newBudget !== undefined && user && result.winner === user.username) {
                 console.log('Updating budget from auction result:', result.newBudget);
                 setUserBudget(result.newBudget);
@@ -210,6 +220,12 @@ const AuctionInterface: React.FC = () => {
             console.log('Player set for auction:', data);
             setAlertInfo({ message: data.message, type: null });
             setSelectedPlayer(data.player);
+        });
+
+        newSocket.on('countdownUpdate', (data) => {
+            console.log('Countdown update:', data);
+            setCountdown(data.countdown);
+            setCountdownActive(data.countdownActive);
         });
 
         socketRef.current = newSocket;
@@ -449,6 +465,7 @@ const AuctionInterface: React.FC = () => {
         if (!position) return 'Unknown';
         const posMap: { [key: string]: string } = {
             'GK': 'Goalkeeper',
+            'GKP': 'Goalkeeper',
             'DEF': 'Defender', 
             'MID': 'Midfielder',
             'FWD': 'Forward'
@@ -461,6 +478,7 @@ const AuctionInterface: React.FC = () => {
         if (!position) return 'gray';
         const colorMap: { [key: string]: string } = {
             'GK': 'yellow',
+            'GKP': 'yellow',
             'DEF': 'blue',
             'MID': 'green',
             'FWD': 'red'
@@ -476,6 +494,24 @@ const AuctionInterface: React.FC = () => {
                 </CardTitle>
                 {isAuthenticated && (
                     <p className="text-lg">Your remaining budget: £{userBudget !== null ? Number(userBudget).toFixed(1) : 'Loading...'} million</p>
+                )}
+                {/* Countdown Display */}
+                {isAuctionActive && countdownActive && (
+                    <div className={`mt-3 text-center p-4 rounded-lg border-2 ${
+                        countdown <= 3 
+                            ? 'bg-red-50 border-red-500 text-red-700 animate-pulse' 
+                            : 'bg-blue-50 border-blue-500 text-blue-700'
+                    }`}>
+                        <p className="text-sm font-medium mb-1">Auction Ending In:</p>
+                        <p className={`text-4xl font-bold ${
+                            countdown <= 3 ? 'text-red-800' : 'text-blue-800'
+                        }`}>
+                            {countdown} second{countdown !== 1 ? 's' : ''}
+                        </p>
+                        {countdown <= 3 && (
+                            <p className="text-sm font-medium mt-1">PLACE YOUR BIDS NOW!</p>
+                        )}
+                    </div>
                 )}
             </CardHeader>
             <CardContent className="space-y-4">
@@ -522,7 +558,7 @@ const AuctionInterface: React.FC = () => {
                                         <p className="text-sm text-gray-600">Selected By</p>
                                         <p className="text-lg font-semibold">{currentPlayer.selected_by_percent || '0.0'}%</p>
                                     </div>
-                                    {currentPlayer.position !== 'GK' && (
+                                    {(currentPlayer.position !== 'GK' && currentPlayer.position !== 'GKP') && (
                                         <>
                                             <div className="text-center">
                                                 <p className="text-sm text-gray-600">Goals</p>
@@ -534,7 +570,7 @@ const AuctionInterface: React.FC = () => {
                                             </div>
                                         </>
                                     )}
-                                    {currentPlayer.position === 'GK' && (
+                                    {(currentPlayer.position === 'GK' || currentPlayer.position === 'GKP') && (
                                         <div className="text-center col-span-2">
                                             <p className="text-sm text-gray-600">Clean Sheets</p>
                                             <p className="text-lg font-semibold">{currentPlayer.clean_sheets || 0}</p>
