@@ -348,7 +348,7 @@ const AuctionInterface: React.FC = () => {
                             <img
                                 src={getPlayerImage(currentPlayer)}
                                 alt={getPlayerName(currentPlayer)}
-                                className="w-full h-96 object-cover rounded-lg"
+                                className="w-full h-[32rem] object-cover rounded-lg"
                                 onError={(e) => {
                                     const target = e.target as HTMLImageElement;
                                     target.src = '/default-player.png';
